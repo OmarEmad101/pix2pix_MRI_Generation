@@ -190,21 +190,8 @@ def train_pix2pix(steps, normalization, data_dir, save_dir, generator_loss_fn, d
     """
     Train the Pix2Pix model with specified parameters.
     """
-    # Automatically use GPU if available, otherwise use CPU
-    gpus = tf.config.list_physical_devices('GPU')
-    if gpus:
-        try:
-            # Set memory growth to prevent TensorFlow from allocating all GPU memory
-            for gpu in gpus:
-                tf.config.experimental.set_memory_growth(gpu, True)
-            print(f"✅ Using GPU: {gpus[0].name}")
-        except RuntimeError as e:
-            print(f"❌ GPU setup failed: {e}")
-    else:
-        print("⚠️ No GPU found. Running on CPU.")
-
     base_dir = os.path.dirname(os.path.abspath(__file__))  # Get the current script directory
-    save_dir = os.path.join(base_dir, save_dir)  # Ensure save directory is relative
+    save_dir = os.path.join(base_dir, save_dir)  # Ensure save d is relative
 
     os.makedirs(save_dir, exist_ok=True)
     checkpoint_dir = os.path.join(save_dir, "checkpoints")
@@ -268,7 +255,7 @@ def train_pix2pix(steps, normalization, data_dir, save_dir, generator_loss_fn, d
     def train_step(input_image, target):
         with tf.GradientTape() as gen_tape, tf.GradientTape() as disc_tape:
             gen_output = generator(input_image, training=True)
-            tf.print(f"Step {step+1}: Forward pass successful.")
+
             if use_conditional_disc:
                 disc_real_output = discriminator_fn([input_image, target], training=True)
                 disc_generated_output = discriminator_fn([input_image, gen_output], training=True)
@@ -306,7 +293,7 @@ def train_pix2pix(steps, normalization, data_dir, save_dir, generator_loss_fn, d
             tf.summary.scalar("PSNR", psnr, step=step+1)
             tf.summary.scalar("SSIM", ssim, step=step+1)
 
-        if (step + 1) % 10000 == 0:  # Save progress every 10 steps (adjust as needed)
+        if (step + 1) % 10000 == 0:  # Save progress every 10000 steps 
           print(f"Step {step+1}: Saving progress image...")
           generate_images(generator, progress_test_image, progress_test_target, progress_save_path, step+1, apply_noise, prefix="step")
           
