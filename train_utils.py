@@ -23,13 +23,14 @@ def load_dataset(images_path, masks_path):
     masks = tf.expand_dims(masks, axis=-1)
     return images, masks
 
-def resize(input_image, real_image, height, width):
-      input_image = tf.image.resize(input_image, [height, width],
-                                    method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
-      real_image = tf.image.resize(real_image, [height, width],
-                                  method=tf.image.ResizeMethod.BICUBIC)
+# def resize(input_image, real_image, height, width):
+#     with tf.device('/CPU:0'):  # Force resizing on CPU
+#         input_image = tf.image.resize(input_image, [height, width],
+#                                       method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+#         real_image = tf.image.resize(real_image, [height, width],
+#                                      method=tf.image.ResizeMethod.BICUBIC)
+#     return input_image, real_image
 
-      return input_image, real_image
 
 def downsample(filters, size, apply_batchnorm=True):
     initializer = tf.random_normal_initializer(0., 0.02)
@@ -66,41 +67,35 @@ def upsample(filters, size, apply_dropout=False):
     return result
 
 # Pix2Pix Model Definitions
+# Updated Generator for 128x128 images
 def Generator():
-    # Define the generator model here
-    inputs = tf.keras.layers.Input(shape=[256, 256, 1])
+    inputs = tf.keras.layers.Input(shape=[128, 128, 1])
 
     down_stack = [
-        downsample(64, 4, apply_batchnorm=False),  # (batch_size, 128, 128, 64)
-        downsample(128, 4),  # (batch_size, 64, 64, 128)
-        downsample(256, 4),  # (batch_size, 32, 32, 256)
-        downsample(512, 4),  # (batch_size, 16, 16, 512)
+        downsample(64, 4, apply_batchnorm=False),  # (batch_size, 64, 64, 64)
+        downsample(128, 4),  # (batch_size, 32, 32, 128)
+        downsample(256, 4),  # (batch_size, 16, 16, 256)
         downsample(512, 4),  # (batch_size, 8, 8, 512)
         downsample(512, 4),  # (batch_size, 4, 4, 512)
         downsample(512, 4),  # (batch_size, 2, 2, 512)
-        downsample(512, 4),  # (batch_size, 1, 1, 512)
     ]
 
     up_stack = [
-        upsample(512, 4, apply_dropout=True),  # (batch_size, 2, 2, 1024)
         upsample(512, 4, apply_dropout=True),  # (batch_size, 4, 4, 1024)
         upsample(512, 4, apply_dropout=True),  # (batch_size, 8, 8, 1024)
-        upsample(512, 4),  # (batch_size, 16, 16, 1024)
-        upsample(256, 4),  # (batch_size, 32, 32, 512)
-        upsample(128, 4),  # (batch_size, 64, 64, 256)
-        upsample(64, 4),  # (batch_size, 128, 128, 128)
+        upsample(256, 4),  # (batch_size, 16, 16, 512)
+        upsample(128, 4),  # (batch_size, 32, 32, 256)
+        upsample(64, 4),  # (batch_size, 64, 64, 128)
     ]
 
     initializer = tf.random_normal_initializer(0., 0.02)
     last = tf.keras.layers.Conv2DTranspose(1, 4,
-                                            strides=2,
-                                            padding='same',
-                                            kernel_initializer=initializer,
-                                            activation='tanh')  # (batch_size, 256, 256, 1)
+                                           strides=2,
+                                           padding='same',
+                                           kernel_initializer=initializer,
+                                           activation='tanh')  # (batch_size, 128, 128, 1)
 
     x = inputs
-
-    # Downsampling through the model
     skips = []
     for down in down_stack:
         x = down(x)
@@ -108,7 +103,6 @@ def Generator():
 
     skips = reversed(skips[:-1])
 
-    # Upsampling and establishing the skip connections
     for up, skip in zip(up_stack, skips):
         x = up(x)
         x = tf.keras.layers.Concatenate()([x, skip])
@@ -220,18 +214,18 @@ def train_pix2pix(steps, normalization, data_dir, save_dir, generator_loss_fn, d
         test_masks = apply_gaussian_noise_to_background(test_masks, noise_std, noise_max)
 
         
-    train_masks, train_images = resize(train_masks,train_images,256,256)
-    test_masks, test_images = resize(test_masks, test_images,256,256)
+    # train_masks, train_images = resize(train_masks,train_images,256,256)
+    # test_masks, test_images = resize(test_masks, test_images,256,256)
     
     print(f"Loaded {train_images.shape} training images and {test_images.shape} test images")
     print(f"Loaded {train_masks.shape} training masks and {test_masks.shape} test masks")
 
 
-    if normalization:
-        def normalize(image):
-            return 2 * (image - tf.reduce_min(image)) / (tf.reduce_max(image) - tf.reduce_min(image)) - 1
-        train_images = normalize(train_images)
-        test_images = normalize(test_images)
+    # if normalization:
+    #     def normalize(image):
+    #         return 2 * (image - tf.reduce_min(image)) / (tf.reduce_max(image) - tf.reduce_min(image)) - 1
+    #     train_images = normalize(train_images)
+    #     test_images = normalize(test_images)
     
     train_dataset = tf.data.Dataset.from_tensor_slices((train_masks, train_images)).batch(1).shuffle(100).prefetch(tf.data.AUTOTUNE)
     test_dataset = tf.data.Dataset.from_tensor_slices((test_masks, test_images)).batch(1).prefetch(tf.data.AUTOTUNE)
