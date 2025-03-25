@@ -69,7 +69,7 @@ save_dir = os.path.join(BASE_DIR, "..", "results", "basic_model_weighted_loss_la
 
 if __name__ == "__main__":
     train_pix2pix(
-        steps=10,
+        steps=100000,
         normalization=True,
         data_dir=data_dir,
         save_dir=save_dir,

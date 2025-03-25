@@ -77,7 +77,7 @@ save_dir = os.path.join(BASE_DIR, "..", "results", "noisy_modified_disc_weighted
 
 if __name__ == "__main__":
     train_pix2pix(
-        steps=10,
+        steps=200000,
         normalization=True,
         data_dir=data_dir,
         save_dir=save_dir,

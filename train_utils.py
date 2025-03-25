@@ -306,23 +306,23 @@ def train_pix2pix(steps, normalization, data_dir, save_dir, generator_loss_fn, d
             tf.summary.scalar("PSNR", psnr, step=step+1)
             tf.summary.scalar("SSIM", ssim, step=step+1)
 
-        if (step + 1) % 10 == 0:  # Save progress every 10 steps (adjust as needed)
+        if (step + 1) % 10000 == 0:  # Save progress every 10 steps (adjust as needed)
           print(f"Step {step+1}: Saving progress image...")
           generate_images(generator, progress_test_image, progress_test_target, progress_save_path, step+1, apply_noise, prefix="step")
           
         print(f"Step {step+1}: Gen Loss = {gen_loss.numpy():.4f}, Disc Loss = {disc_loss.numpy():.4f}")
         
-        if (step + 1) % 1000 == 0:
+        if (step + 1) % 50000 == 0:
             print(f"Step {step+1}: Saving checkpoint...")
             checkpoint.save(file_prefix=os.path.join(checkpoint_dir, "ckpt"))
 
-    # # ✅ Generate Predictions for the Entire Test Set
-    # test_predictions_path = os.path.join(save_dir, "test_predictions")
-    # os.makedirs(test_predictions_path, exist_ok=True)
+    # ✅ Generate Predictions for the Entire Test Set
+    test_predictions_path = os.path.join(save_dir, "test_predictions")
+    os.makedirs(test_predictions_path, exist_ok=True)
 
-    # print("Generating final test predictions...")
-    # for idx, (test_input, tar) in enumerate(test_dataset):
-    #     generate_images(generator, test_input, tar, test_predictions_path, idx, apply_noise, prefix="test")
+    print("Generating final test predictions...")
+    for idx, (test_input, tar) in enumerate(test_dataset):
+        generate_images(generator, test_input, tar, test_predictions_path, idx, apply_noise, prefix="test")
 
     # Save final models
     generator.save(os.path.join(save_dir, "generator.h5"))
